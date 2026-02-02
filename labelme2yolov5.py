@@ -232,12 +232,29 @@ class Labelme2YOLO(object):
 
     def _save_yolo_image(self, json_data, json_name, image_dir_path, target_dir):
         img_name = json_name.replace('.json', '.png')
-        img_path = os.path.join(image_dir_path, target_dir,img_name)
-        
+        img_path = os.path.join(image_dir_path, target_dir, img_name)
+
         if not os.path.exists(img_path):
-            img = utils.img_b64_to_arr(json_data['imageData'])
-            PIL.Image.fromarray(img).save(img_path)
-        
+            image_data = json_data.get('imageData')
+            if image_data:
+                img = utils.img_b64_to_arr(image_data)
+                PIL.Image.fromarray(img).save(img_path)
+            else:
+                # imageData 為 null 時，從 imagePath 讀取外部圖檔
+                image_path = json_data.get('imagePath', img_name)
+                if not os.path.isabs(image_path):
+                    image_path = os.path.join(self._json_dir, image_path)
+                image_path = os.path.normpath(image_path)
+                if os.path.exists(image_path):
+                    img = cv2.imread(image_path)
+                    if img is not None:
+                        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                        PIL.Image.fromarray(img_rgb).save(img_path)
+                    else:
+                        raise FileNotFoundError('Cannot read image: %s' % image_path)
+                else:
+                    raise FileNotFoundError('Image not found: %s (imageData is null and imagePath missing or invalid)' % image_path)
+
         return img_path
     
     def _save_dataset_yaml(self):
