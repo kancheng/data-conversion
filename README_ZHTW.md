@@ -1,133 +1,139 @@
-# 資料轉換技術文件
+# 資料轉換
 
-## 概述
-**資料轉換專案**提供了一組工具和腳本，用於促進深度學習應用中特別是圖像分割和目標檢測任務的數據格式轉換。此專案設計用於處理 Labelme、YOLO 和 Mask 圖像之間的格式轉換。
+[English](README.md) · [简体中文 (Simplified Chinese)](README_ZHCN.md)
+
+用於圖像分割與目標檢測的標註格式轉換工具：**Labelme**（JSON）、**YOLO**（txt + dataset.yaml）與**遮罩**圖像之間的互轉。
 
 ---
 
 ## 專案結構
 
-### 目錄
-- **datasets/**: 包含示例或使用者提供的各種格式的數據集。
-- **docu/**: 文檔及相關資源。
-- **function/**: 包含腳本使用的工具函數。
-- **outputs/**: 存儲由腳本生成的輸出文件。
-- **test/**: 用於驗證腳本功能的測試文件和示例數據。
+| 路徑 | 說明 |
+|------|------|
+| **datasets/** | 放置來源資料：`labelme/labelme_dataset`、`mask/mask_dataset`、`yolo/yolo_dataset`。見 [datasets/README.md](datasets/README.md)。 |
+| **function/** | 各腳本及 `init-*.py` 呼叫的轉換邏輯。 |
+| **test/** | 範例與測試資料。 |
+| **outputs/** | 預設輸出根目錄（如 init 腳本使用的 `outputs/default_data/`）。 |
 
-### 關鍵文件
-- **labelme2mask.py**: 將 Labelme 標註（JSON 格式）轉換為Mask圖像。
-- **labelme2mask2.py**: `labelme2mask.py` 的擴展版本，具有更多功能。
-- **labelme2yolov5.py**: 將 Labelme 標註轉換為 YOLOv5 格式。
-- **labelme2yolov8.py**: 將 Labelme 標註轉換為 YOLOv8 格式。
-- **mask2labelme.py**: 將Mask圖像轉換回 Labelme JSON 格式。
-- **mask2yolo.py**: 將Mask圖像轉換為 YOLO 格式。
-- **yolo2labelme.py**: 將 YOLO 標註轉換為 Labelme JSON 格式。
-- **yolo2masks.py**: 將 YOLO 標註轉換為Mask圖像。
-- **ydataset2images.py**: 從 YOLO 數據集中提取單個圖像。
+### 主要轉換腳本
 
-### 依賴項
-本專案使用的 Python 套件可以通過 `requirements.txt` 文件進行安裝：
+| 腳本 | 作用 |
+|------|------|
+| **labelme2mask.py** | Labelme JSON → 遮罩圖像 |
+| **labelme2mask2.py** | Labelme JSON → 遮罩圖像（擴充版，含 train/val 劃分） |
+| **labelme2yolov5.py** | Labelme JSON → YOLOv5 格式 |
+| **labelme2yolov8.py** | Labelme JSON → YOLOv8 格式（偵測或加 `--seg` 分割） |
+| **mask2labelme.py** | 遮罩圖像 → Labelme JSON |
+| **mask2yolo.py** | 遮罩資料集 → YOLO 格式 |
+| **yolo2labelme.py** | YOLO 資料集 → Labelme JSON |
+| **yolo2labelme2.py** | YOLO → Labelme（另一實作） |
+| **yolo2masks.py** | YOLO 標籤 + 圖像 → 遮罩圖像 |
+| **ydataset2images.py** | YOLO 資料集 → 匯出圖像（raw/res） |
+
+### 一鍵初始化腳本
+
+| 腳本 | 行為 |
+|------|------|
+| **init-labelme.py** | 建立輸出目錄，將 `datasets/labelme/labelme_dataset` 複製到 `outputs/default_data/dataset_labelme`，再轉為 YOLO 與遮罩。 |
+| **init-mask.py** | 複製遮罩資料集到 `dataset_masks`，再轉為 YOLO 與 Labelme。 |
+| **init-yolo.py** | 複製 YOLO 資料集到 `dataset_yolo`，再轉為 Labelme 與遮罩。 |
+
+在專案根目錄執行，例如：
+
+```bash
+python init-labelme.py
+```
+
+---
+
+## 安裝
+
 ```bash
 pip install -r requirements.txt
 ```
 
+可選（YOLO ↔ Labelme 需解析 YAML）：`pip install pyyaml`
+
+使用鏡像範例：
+
 ```bash
-pip install -r requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple 
+pip install -r requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
 ```
 
 ---
 
-## 功能描述
+## 使用說明（命令列）
 
-### 1. Labelme 到 Mask 轉換
-**腳本:** `labelme2mask.py`
+### Labelme → 遮罩
 
-- **目的:** 將 Labelme JSON 標註轉換為二進制或彩色 Mask 圖像。
-- **用法:**
-  ```bash
-  python labelme2mask.py --input_dir <path_to_labelme_jsons> --output_dir <path_to_output_masks>
-  ```
-- **參數:**
-  - `--input_dir`: 包含 Labelme JSON 文件的目錄。
-  - `--output_dir`: 保存Mask圖像的目錄。
+- **labelme2mask.py**：`--input_dir`、`--output_dir`
+- **labelme2mask2.py**：`--input_dir`、`--output_dir`（輸出含 train/test 的 images 與 masks）
 
-### 2. Labelme 到 YOLO 格式轉換
-**腳本:** `labelme2yolov5.py`, `labelme2yolov8.py`
+```bash
+python labelme2mask.py --input_dir <labelme目錄> --output_dir <輸出目錄>
+python labelme2mask2.py --input_dir <labelme目錄> --output_dir <輸出目錄>
+```
 
-- **目的:** 將 Labelme 標註轉換為 YOLO 格式，用於目標檢測任務。
-- **用法:**
-  ```bash
-  python labelme2yolov5.py --input_dir <path_to_labelme_jsons> --output_dir <path_to_yolo_annotations>
-  ```
-- **參數:**
-  - `--input_dir`: 包含 Labelme JSON 文件的目錄。
-  - `--output_dir`: 保存 YOLO 標註文件的目錄。
+### Labelme → YOLO
 
-### 3. Mask 到 Labelme 格式轉換
-**腳本:** `mask2labelme.py`
+- **labelme2yolov5.py** / **labelme2yolov8.py**：`--json_dir`、`--val_size`（預設 0.1）、`--json_name`（可選，單檔）、`--seg`（分割格式）
 
-- **目的:** 將Mask圖像轉換回 Labelme JSON 標註。
-- **用法:**
-  ```bash
-  python mask2labelme.py --input_dir <path_to_masks> --output_dir <path_to_labelme_jsons>
-  ```
+輸出預設寫在 `json_dir` 下（如 `YOLODataset/` 或 `YOLODataset_seg/`），除非透過 function 版本指定其他路徑。
 
-### 4. YOLO 到Mask轉換
-**腳本:** `yolo2masks.py`
+```bash
+python labelme2yolov5.py --json_dir <labelme_json目錄> [--val_size 0.1] [--seg]
+python labelme2yolov8.py --json_dir <labelme_json目錄> [--val_size 0.1] [--seg]
+```
 
-- **目的:** 將 YOLO 標註轉換為Mask圖像，用於分割任務。
-- **用法:**
-  ```bash
-  python yolo2masks.py --input_dir <path_to_yolo_annotations> --output_dir <path_to_masks>
-  ```
+Labelme JSON 可含內嵌 `imageData` 或僅用外部 `imagePath`，兩種方式皆支援。
 
-### 5. YOLO 到 Labelme 格式轉換
-**腳本:** `yolo2labelme.py`
+### 遮罩 → Labelme / YOLO
 
-- **目的:** 將 YOLO 標註轉換回 Labelme JSON 格式。
-- **用法:**
-  ```bash
-  python yolo2labelme.py --input_dir <path_to_yolo_annotations> --output_dir <path_to_labelme_jsons>
-  ```
+- **mask2labelme.py**：`--input`、`--output`（遮罩資料集根目錄 → Labelme 輸出目錄；需在腳本中設定 label_names）。
+- **mask2yolo.py**：`--input`、`--output`（遮罩資料集根目錄 → YOLO 輸出根目錄）。
 
-### 6. YOLO 數據集提取
-**腳本:** `ydataset2images.py`
+遮罩資料集結構：`train/images`、`train/masks`、`val/...` 或 `images/train`、`masks/train`、`images/val`、`masks/val`。
 
-- **目的:** 從 YOLO 數據集中提取單個圖像。
-- **用法:**
-  ```bash
-  python ydataset2images.py --input_dir <path_to_yolo_dataset> --output_dir <path_to_images>
-  ```
+```bash
+python mask2yolo.py --input <遮罩資料集根目錄> --output <yolo輸出根目錄>
+python mask2labelme.py --input <遮罩資料集根目錄> --output <labelme輸出目錄>
+```
+
+### YOLO → Labelme / 遮罩
+
+- **yolo2labelme.py**：`--input_dir`（含 `dataset.yaml` 的資料集根目錄）、`--out`（Labelme 輸出目錄）、`--skip`（可選）。
+- **yolo2masks.py**：`--txt`（標籤目錄）、`--img`（圖像目錄）、`--out`（遮罩輸出根目錄）。需有 `labels/train`、`labels/val`、`images/train`、`images/val`。
+
+```bash
+python yolo2labelme.py --input_dir <yolo資料集根目錄> --out <labelme輸出目錄>
+python yolo2masks.py --txt <labels路徑> --img <images路徑> --out <遮罩輸出目錄>
+```
+
+### YOLO 資料集 → 圖像匯出
+
+- **ydataset2images.py**：`--ppath`（`dataset.yaml` 路徑）、`--output`（輸出目錄，含 raw/res）。
+
+```bash
+python ydataset2images.py --ppath <dataset.yaml路徑> --output <輸出目錄>
+```
 
 ---
 
-## 示例工作流程
-1. **準備數據:**
-   - 確保數據集為支持的格式（如 Labelme JSON、YOLO 標註或Mask圖像）。
-   
-2. **轉換流程:**
-   - 使用 `labelme2mask.py` 將 Labelme 標註轉換為Mask。
-   - 使用 `mask2yolo.py` 將Mask轉換為 YOLO 格式。
-   - 可選地，使用 `yolo2labelme.py` 將 YOLO 標註轉回 Labelme JSON。
+## 範例流程
 
-3. **輸出驗證:**
-   - 檢查 `outputs/` 目錄中的生成文件。
-
----
-
-## 貢獻指南
-1. Fork 此倉庫並在本地克隆。
-2. 為您的功能或錯誤修復創建新分支。
-3. 提交帶有清晰信息的更改。
-4. 提交拉取請求以供審查。
+1. 將 Labelme JSON（若用 `imagePath` 則需對應圖像）放入如 `datasets/labelme/labelme_dataset/`。
+2. 執行 `python init-labelme.py`，會在 `outputs/default_data/` 下複製並轉換為 YOLO 與遮罩。
+3. 或手動執行：先 `labelme2mask2` 或 `labelme2yolov8 --seg`，再依需求使用 `mask2yolo` 或 YOLO 輸出。
+4. 在 `outputs/` 下檢視結果。
 
 ---
 
 ## 授權
-此專案基於 MIT 許可證授權。詳情請參見 `LICENSE` 文件。
+
+MIT，詳見 [LICENSE](LICENSE)。
 
 ---
 
-## 聯繫方式
-如有問題或查詢，請在 [GitHub 倉庫](https://github.com/kancheng/data-conversion/issues) 中提交 issue。
+## 聯絡
 
+[GitHub Issues](https://github.com/kancheng/data-conversion/issues)
